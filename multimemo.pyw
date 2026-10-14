@@ -29,6 +29,7 @@ if IS_MAC:
     NOTES_DIR = os.path.join(os.path.expanduser("~"), "Documents", "멀티메모")
 else:
     NOTES_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "notes")
+ICON_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "multimemo.ico")
 TRASH_DIR = os.path.join(NOTES_DIR, "_삭제됨")
 META_FILE = os.path.join(NOTES_DIR, "_meta.json")
 SHEET_META = "_meta.json"
@@ -366,7 +367,17 @@ class App:
             ctypes.windll.shcore.SetProcessDpiAwareness(2)
         except (AttributeError, OSError):
             pass
+        # 작업표시줄에 파이썬 대신 멀티 메모 아이콘이 따로 뜨도록 앱 ID 지정
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MultiMemo.App")
+        except (AttributeError, OSError):
+            pass
         self.root = tk.Tk()
+        if not IS_MAC and os.path.exists(ICON_FILE):
+            try:
+                self.root.iconbitmap(default=ICON_FILE)
+            except tk.TclError:
+                pass
         if IS_MAC:
             self.root.tk.call("tk", "scaling", MAC_SCALE)
         else:
