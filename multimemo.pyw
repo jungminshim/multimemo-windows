@@ -105,6 +105,36 @@ def open_folder(path):
         os.startfile(path)
 
 
+APP_ID = "MultiMemo.App"
+
+
+def set_relaunch_info(root):
+    """작업표시줄에 고정할 때 파이썬이 아니라 '멀티 메모'(아이콘·실행 명령 포함)로 고정되도록 등록."""
+    if IS_MAC:
+        return
+    try:
+        import pythoncom
+        from win32com.propsys import propsys, pscon
+    except ImportError:  # pywin32가 없으면 건너뜀 (고정 시 파이썬 아이콘으로 고정될 수 있음)
+        return
+    try:
+        root.update_idletasks()
+        hwnd = int(root.wm_frame(), 16)
+        store = propsys.SHGetPropertyStoreForWindow(hwnd, propsys.IID_IPropertyStore)
+        pyw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        values = [
+            (pscon.PKEY_AppUserModel_ID, APP_ID),
+            (pscon.PKEY_AppUserModel_RelaunchCommand, f'"{pyw}" "{os.path.abspath(__file__)}"'),
+            (pscon.PKEY_AppUserModel_RelaunchDisplayNameResource, "멀티 메모"),
+            (pscon.PKEY_AppUserModel_RelaunchIconResource, ICON_FILE + ",0"),
+        ]
+        for key, val in values:
+            store.SetValue(key, propsys.PROPVARIANTType(val, pythoncom.VT_LPWSTR))
+        store.Commit()
+    except Exception:
+        pass
+
+
 def rounded_rect(canvas, x1, y1, x2, y2, r, **kw):
     pts = [x1 + r, y1, x2 - r, y1, x2, y1, x2, y1 + r, x2, y2 - r, x2, y2,
            x2 - r, y2, x1 + r, y2, x1, y2, x1, y2 - r, x1, y1 + r, x1, y1]
@@ -369,7 +399,7 @@ class App:
             pass
         # 작업표시줄에 파이썬 대신 멀티 메모 아이콘이 따로 뜨도록 앱 ID 지정
         try:
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("MultiMemo.App")
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
         except (AttributeError, OSError):
             pass
         self.root = tk.Tk()
@@ -712,6 +742,7 @@ class App:
 
     def run(self):
         self.root.after(100, self.current.relayout)
+        self.root.after(200, lambda: set_relaunch_info(self.root))
         self.root.mainloop()
 
 
